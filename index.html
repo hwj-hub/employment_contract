@@ -61,6 +61,29 @@ body.inapp .iabar{display:flex}
 @media (prefers-color-scheme:dark){.iabar .ia-go{color:var(--afg)}}
 .iabar .ia-x{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;
   color:var(--muted);font:inherit;font-size:12px;line-height:1;cursor:pointer}
+/* ── 앱 안에서 열었을 때 막는 창 ── 토스트(z-index 99)보다는 아래에 둔다 */
+.iamodal{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:18px;
+  background:rgba(10,12,24,.72);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+body.ia-lock{overflow:hidden}
+body.ia-lock .iamodal{display:flex}
+body.ia-lock .wrap{pointer-events:none}
+.iasheet{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  width:100%;max-width:420px;max-height:92vh;overflow:auto;padding:22px 18px 16px;text-align:center}
+.iasheet .iaic{font-size:34px;line-height:1;margin-bottom:10px}
+.iasheet h2{font-size:17.5px;font-weight:800;letter-spacing:-.02em;margin:0 0 10px;line-height:1.45}
+.iap{font-size:13.5px;font-weight:600;color:var(--muted);line-height:1.7;margin:0 0 14px}
+.iap b{color:var(--fg);font-weight:800}
+.iasteps{text-align:left;margin:0 0 16px;padding:12px 14px 12px 32px;border-radius:12px;background:var(--card2);
+  font-size:13px;font-weight:600;color:var(--muted);line-height:1.7}
+.iasteps li+li{margin-top:5px}
+.iasteps b{color:var(--fg);font-weight:800}
+.iabtn{display:block;width:100%;font:inherit;font-size:15px;font-weight:800;color:#fff;border:0;border-radius:12px;
+  padding:14px;min-height:52px;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:var(--shadow)}
+@media (prefers-color-scheme:dark){.iabtn{color:var(--afg)}}
+.iafine{margin:12px 0 0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.6}
+.iafine button{font:inherit;font-size:12px;font-weight:700;color:var(--muted);background:none;border:0;padding:6px 8px;
+  text-decoration:underline;cursor:pointer;min-height:36px}
 .dwarn{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--warnbg);font-size:12.5px;font-weight:700;line-height:1.6}
 .dwarn button{font:inherit;font-size:12.5px;font-weight:800;color:var(--accent);background:none;border:0;padding:0;
   text-decoration:underline;cursor:pointer}
@@ -800,6 +823,19 @@ footer b{color:var(--fg)}
   PDF는 기기 글꼴의 윤곽선을 따 넣어 확대해도 깨지지 않고, 글자 복사·검색이 됩니다 · 워드는 Office Open XML(.docx)<br>
   입력한 내용은 어디에도 전송되지 않으며, 페이지를 연 뒤에는 인터넷 없이도 동작합니다 · 외부 라이브러리 없음
 </footer>
+</div>
+
+<!-- 앱 안(네이버·카카오톡 등)에서 열렸을 때 작성을 막는 창.
+     WebView 는 파일 내려받기를 못 해서, 다 만들어도 저장이 안 된다 -->
+<div class="iamodal" id="iaModal" role="dialog" aria-modal="true" aria-labelledby="iaTitle">
+  <div class="iasheet">
+    <div class="iaic">📱</div>
+    <h2 id="iaTitle">앱 안에서는 파일이 저장되지 않습니다</h2>
+    <p class="iap" id="iaDesc"></p>
+    <ol class="iasteps" id="iaSteps"></ol>
+    <button class="iabtn" id="iaGo2" type="button">크롬에서 열기</button>
+    <p class="iafine"><button type="button" id="iaStay">저장은 안 해도 돼요 · 그냥 볼게요</button></p>
+  </div>
 </div>
 
 <!-- 서명 창 -->
@@ -3210,14 +3246,14 @@ function bindMoneyInput(el, apply) {
    ════════════════════════════════════════════════════════════ */
 const AD = {
   units: {
-    top_m:   { id: 'DAN-3QxsS4OpnHbVRMie', w: 320, h: 50 },   /* 모바일 맨 위 */
+    top_m:   { id: 'DAN-XXXXXXXXXXXXXXXX', w: 320, h: 50 },   /* 모바일 맨 위 */
     top_pc:  { id: 'DAN-XXXXXXXXXXXXXXXX', w: 728, h: 90 },   /* PC 맨 위 */
     side_pc: { id: 'DAN-XXXXXXXXXXXXXXXX', w: 320, h: 50 },   /* PC 미리보기 카드 위 */
     mid:     { id: 'DAN-XXXXXXXXXXXXXXXX', w: 320, h: 100 },  /* 본문 중간 · 모바일과 PC 가 같이 뜨지 않아 하나로 쓴다 */
     done:    { id: 'DAN-XXXXXXXXXXXXXXXX', w: 300, h: 250 },  /* 저장 완료 카드 */
     anchor:  { id: 'DAN-XXXXXXXXXXXXXXXX', w: 320, h: 50 }    /* 모바일 하단 오버형 */
   },
-  iframeOk: true,  /* iframe 안에서도 띄우려면 true (애드핏에서는 권하지 않음) */
+  iframeOk: false,  /* iframe 안에서도 띄우려면 true (애드핏에서는 권하지 않음) */
   popup: true,      /* 저장 완료 카드 */
   overlay: true,    /* 하단 오버형 */
   init() {
@@ -3309,21 +3345,51 @@ const AD = {
   hideDone() { $('doneCard').classList.add('hide'); updateMbar(); }
 };
 
-/* 앱 안에서 열렸으면 띠를 띄우고 단추 문구를 그 앱에 맞게 바꾼다 */
+/* 앱 안에서 열렸으면 작성을 막고 창을 띄운다.
+   띠만 띄워 두면 다 채운 뒤에야 저장이 안 되는 걸 알게 되는데,
+   입력은 그 탭에만 있어서 브라우저를 옮기는 순간 처음부터 다시 써야 한다 */
 function initInApp() {
   if (!IA.on) return;
-  if (sessionStorage.getItem('employment_contract.iahide') === '1') return;
-  document.body.classList.add('inapp');
   const app = IA.naver ? '네이버 앱' : IA.kakao ? '카카오톡' : IA.line ? '라인' : '앱';
-  $('iaMsg').textContent = app + ' 안에서 열려서 파일 저장이 안 될 수 있어요.';
-  if (IA.ios && !IA.kakao && !IA.line) {
-    $('iaGo').textContent = '주소 복사';
-    $('iaSub').textContent = '사파리에 붙여 넣거나, 오른쪽 아래 메뉴에서 「다른 브라우저로 열기」를 누르세요.';
-  } else {
-    $('iaGo').textContent = IA.android ? '크롬에서 열기' : '다른 브라우저로 열기';
-    $('iaSub').textContent = '입력하기 전에 옮기면 다시 쓰지 않아도 됩니다.';
-  }
+  const copyOnly = IA.ios && !IA.kakao && !IA.line;   /* 아이폰은 사파리를 강제로 열 수 없다 */
+
+  document.body.classList.add('inapp');
+  $('iaMsg').textContent = app + ' 안에서는 파일 저장이 안 됩니다.';
   $('doneInapp').classList.remove('hide');
+
+  $('iaDesc').innerHTML = '<b>' + app + '</b> 안에서 열렸습니다. 이 화면에서는 ' +
+    '<b>PDF·워드·이미지 어느 것도 저장되지 않습니다.</b> 계약서를 다 만들어도 받을 수 없으니 ' +
+    '<b>쓰기 전에</b> 브라우저를 옮겨 주세요.';
+  const steps = copyOnly
+    ? ['아래 <b>주소 복사</b>를 누르세요.',
+       '오른쪽 아래 <b>메뉴</b>에서 「다른 브라우저로 열기」를 누르거나, <b>사파리</b> 주소창에 붙여 넣으세요.']
+    : IA.android
+      ? ['아래 <b>크롬에서 열기</b>를 누르세요.',
+         '크롬이 없으면 오른쪽 위 <b>메뉴</b>에서 「다른 브라우저로 열기」를 누르세요.']
+      : ['아래 <b>다른 브라우저로 열기</b>를 누르세요.'];
+  $('iaSteps').innerHTML = steps.map(t => '<li>' + t + '</li>').join('');
+  const label = copyOnly ? '주소 복사' : IA.android ? '크롬에서 열기' : '다른 브라우저로 열기';
+  $('iaGo').textContent = label;
+  $('iaGo2').textContent = label;
+  $('iaSub').textContent = copyOnly
+    ? '사파리에 붙여 넣거나, 오른쪽 아래 메뉴에서 「다른 브라우저로 열기」를 누르세요.'
+    : '저장하려면 브라우저를 옮겨 주세요.';
+
+  lockInApp(true);
+}
+/* 창이 떠 있는 동안에는 뒤쪽 입력칸을 아예 만지지 못하게 한다 */
+function lockInApp(on) {
+  document.body.classList.toggle('ia-lock', on);
+  const w = document.querySelector('.wrap');
+  if (on) w.setAttribute('inert', ''); else w.removeAttribute('inert');
+  if (!on) $('iaModal').blur();
+}
+/* 아이폰에서 주소를 복사했으면 창 안에서 바로 알려 준다 — 토스트는 창 위에 잠깐 떴다 사라진다 */
+function iaCopied() {
+  $('iaDesc').innerHTML = '주소를 <b>복사했습니다.</b> 이제 <b>사파리</b>를 열고 주소창에 붙여 넣으세요.';
+  $('iaSteps').innerHTML = '<li>홈 화면에서 <b>사파리</b>를 엽니다.</li>' +
+    '<li>주소창을 길게 눌러 <b>붙여넣기</b> 하세요.</li>' +
+    '<li>또는 이 화면 오른쪽 아래 <b>메뉴</b> → 「다른 브라우저로 열기」.</li>';
 }
 
 /* 휴대폰: 입력칸을 내려가는 동안 미리보기가 화면 밖에 있으면 아래 바를 띄운다 */
@@ -3506,8 +3572,15 @@ function init() {
   window.addEventListener('resize', () => { updateMbar(); if (CUR) renderPreview(CUR.lay); }, { passive: true });
   $('mbarGo').addEventListener('click', () => $('pvCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
   $('doneHide').addEventListener('click', () => AD.hideDone());
-  $('iaGo').addEventListener('click', openExternal);
-  $('doneGo').addEventListener('click', openExternal);
+  const goOut = () => { const u = externalUrl(); if (u) { location.href = u; return; } copyAddr(true); iaCopied(); };
+  $('iaGo').addEventListener('click', goOut);
+  $('iaGo2').addEventListener('click', goOut);
+  $('doneGo').addEventListener('click', goOut);
+  /* 못 고치는 경우(앱 판별이 틀렸거나 그냥 보기만 할 때)를 위한 좁은 문 */
+  $('iaStay').addEventListener('click', () => {
+    lockInApp(false);
+    toast('저장은 안 됩니다. 만든 계약서를 받으려면 위쪽 「' + $('iaGo').textContent + '」를 눌러 주세요.', 5200);
+  });
   $('iaX').addEventListener('click', () => {
     document.body.classList.remove('inapp');
     try { sessionStorage.setItem('employment_contract.iahide', '1'); } catch (e) { /* 무시 */ }
@@ -3519,7 +3592,8 @@ function init() {
   fillForm();
   refresh();
   updateMbar();
-  if (restored) toast('이 탭에서 쓰던 내용을 불러왔습니다.');
+  /* 막는 창이 떠 있을 때는 알림을 격치지 않는다 */
+  if (restored && !document.body.classList.contains('ia-lock')) toast('이 탭에서 쓰던 내용을 불러왔습니다.');
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 </script>
